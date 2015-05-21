@@ -1,0 +1,13 @@
+[Unit]
+Description=Dynamic System Tuning Daemon
+After=syslog.target
+Conflicts=cpupower.service
+
+[Service]
+Type=dbus
+PIDFile=/run/tuned/tuned.pid
+BusName=com.redhat.tuned
+ExecStart=/usr/sbin/tuned -l -P
+
+[Install]
+WantedBy=multi-user.target
