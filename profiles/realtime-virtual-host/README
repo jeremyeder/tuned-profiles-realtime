@@ -1,0 +1,20 @@
+
+Dependencies:
+
+- tuna.
+- python-linux-procfs.
+- awk.
+- wc.
+
+Packaging:
+
+tscdeadline_latency.flat must be included in the profile directory 
+so as to calculate optimal tsc deadline latency advancement value.
+
+How to build:
+
+# git clone git://git.kernel.org/pub/scm/virt/kvm/kvm-unit-tests.git
+# cd kvm-unit-tests/
+# ./configure && make
+# file x86/tscdeadline_latency.flat
+
