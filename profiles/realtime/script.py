@@ -1,29 +1,36 @@
 #!/usr/bin/python -tt
 
+# worker script for realtime tuned profile
+
 import os
 import sys
 import subprocess
 import argparse
+import procfs
 
 class CpuList(object):
 
     def __init__(self, cpurange):
         self.online = self.cpus()
         self.range = self.expand(cpurange)
-        
+
+    def __repr__(self):
+        return ",".join(self.contract())
+
+    def __str__(self):
+        return str(",".join(self.contract()))
+
     # return the number of cpus online
     def cpus(self):
-        p = subprocess.Popen(['lscpu'], stdout=subprocess.PIPE, shell=False)
-        for l in p.stdout.readlines():
-            if l.startswith("CPU(s)"):
-                return int(l.split()[1])
-        return 0
+        p = subprocess.Popen(['getconf', '_NPROCESSORS_ONLN'],
+                             stdout=subprocess.PIPE, shell=False)
+        return int(p.stdout.readline());
 
     # expand a string cpu range into a flat array of integers
-    # ['2','4-7'] -> [2, 4, 5, 6, 7 ]
-    def expand(self):
+    # '2,4-7' -> [2, 4, 5, 6, 7 ]
+    def expand(self, cpurange):
         result = []
-        for part in self.range.split(','):
+        for part in cpurange.split(','):
             if '-' in part:
                 a, b = part.split('-')
                 a, b = int(a), int(b)
@@ -39,14 +46,13 @@ class CpuList(object):
                 result.append(a)
         return result
 
-    # return the compliment of an array of cpu numbers
+    # return the compliment of our array of cpu numbers
     def compliment(self):
-        return [ x for x in range(0, self.online) if x not in self.range ]
+        return self.contract([ x for x in range(0, self.online) if x not in self.range ])
 
     # return true if the value x is the next consecutive number from the last entry
     # of array a
-    def consecutive (self, a, x):
-        #print a, x
+    def _consecutive (self, a, x):
         if a == []:
             return False
         last = a[-1:][0]
@@ -59,7 +65,7 @@ class CpuList(object):
         return False
 
     # extend the range r by one
-    def extend_range(self, r):
+    def _extend_range(self, r):
         if '-' in r:
             a,b = r.split('-')
             return "%s-%s" % (a, str(int(b)+1))
@@ -68,42 +74,42 @@ class CpuList(object):
 
     # given a list of cpus 'l', return a compressed array of strings
     # [ 2, 4, 5, 6, 7 ] -> ['2', '4-7']
-    def contract(self):
+    def contract(self, array=None):
         result = []
-        l = self.range
-        while (len(l)):
-            end = len(l) - 1
-            if consecutive(result, l[0]):
-                r = extend_range(result.pop())
-                #print "new range: ", r
+        if array:
+            l = array
+        else:
+            l = self.range
+        while (l):
+            if self._consecutive(result, l[0]):
+                r = self._extend_range(result.pop())
             else:
                 r = str(l[0])
             result.extend([r])
             l = l[1:]
-            return result
+        return result
+
 ######################################################################
 # start of script logic
 
+# activate this tuned profile
 def start(cpulist):
-    pass
+    # move threads off the selected cpu cores
+    cmd = ['tuna', '-c', str(cpulist), '-i']
+    subprocess.call(cmd, shell=False)
 
+    # move the interrupts to non-isolated cores
+    cmd = ['tuna', '--c', ",".join(cpulist.compliment()), '-q', '*', '-x', '-m' ]
+    subprocess.call(cmd, shell=False)
+
+# deactivate the tuned profile
 def stop(cpulist):
     pass
 
+# verify the tuned profile conditions are met
 def verify(cpulist):
-    pass
-
-def read_variables(path):
-    variables = {}
-    f = open(path)
-    for l in f.readline():
-        if l.startswith('#'): continue
-        if '=' in l:
-            n,v  = l.split('=')
-            variables[n] = v
-    close f
-    return variables
-
+    cmd = ['tuna', '-c', str(cpulist), '-P' ]
+    subprocess.call(cmd, shell=False)
 
 if __name__ == "__main__":
 
@@ -115,7 +121,7 @@ if __name__ == "__main__":
     command = ns.command[0]
 
     try:
-        isolated_list = sys.environ['ISOLATED_CORES']
+        isolated_cores = os.environ['TUNED_ISOLATED_CORES']
     except:
         print "no isolated cores set, realtime profile not activating"
         sys.exit(0)
