@@ -2,7 +2,7 @@
 
 . /usr/lib/tuned/functions
 
-pp=/usr/lib/tuned/realtime-virt-host/
+pp=/usr/lib/tuned/realtime-virtual-host/
 
 ltanfile=/sys/module/kvm/parameters/lapic_timer_advance_ns
 
