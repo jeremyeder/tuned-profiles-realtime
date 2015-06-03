@@ -2,7 +2,7 @@
 
 . /usr/lib/tuned/functions
 
-pp=/usr/lib/tuned/realtime-virt-guest/
+pp=/usr/lib/tuned/realtime-virtual-guest/
 
 start() {
     python $pp/defirqaffinity.py "remove" "$pp/isolated-cpus" &&
