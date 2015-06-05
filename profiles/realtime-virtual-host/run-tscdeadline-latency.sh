@@ -11,7 +11,7 @@ dir=`mktemp -d`
 
 for i in `seq 1000 500 7000`; do
 	echo $i > /sys/module/kvm/parameters/lapic_timer_advance_ns
-	chrt -f 1 $QEMU -enable-kvm -device pc-testdev \
+	chrt -f 1 taskset -c $1 $QEMU -enable-kvm -device pc-testdev \
 		-device isa-debug-exit,iobase=0xf4,iosize=0x4 \
 		-display none -serial stdio -device pci-testdev \
 		-kernel tscdeadline_latency.flat  \
