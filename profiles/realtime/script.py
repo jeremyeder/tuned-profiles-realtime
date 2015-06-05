@@ -121,7 +121,7 @@ if __name__ == "__main__":
     command = ns.command[0]
 
     try:
-        isolated_cores = os.environ['TUNED_ISOLATED_CORES']
+        isolated_cores = os.environ['TUNED_isolated_cores']
     except:
         print "no isolated cores set, realtime profile not activating"
         sys.exit(0)
