@@ -17,6 +17,11 @@ start() {
         return $retval
     fi
 
+    modinfo -p kvm | grep -q kvmclock_periodic_sync
+    if [ "$?" -eq 0 ]; then
+        echo "options kvm kvmclock_periodic_sync=0" > /etc/modprobe.d/kvm.rt.tuned.conf
+    fi
+
     if [ -f lapic_timer_adv_ns.cpumodel ]; then
         curmodel=`cat /proc/cpuinfo | grep "model name" | cut -f 2 -d ":" | uniq`
         genmodel=`cat lapic_timer_adv_ns.cpumodel`
@@ -51,6 +56,7 @@ start() {
 }
 
 stop() {
+    rm -f /etc/modprobe.d/kvm.rt.tuned.conf
     python $pp/isolate-cpus.py "-I" "$pp/isolated-cpus-ineffect" &&
     python $pp/defirqaffinity.py "add" "$pp/isolated-cpus-ineffect"
     return "$?"
@@ -58,7 +64,11 @@ stop() {
 
 verify() {
     python $pp/defirqaffinity.py "verify" "$pp/isolated-cpus-ineffect"
-    return "$?"
+    retval = "$?"
+    if [ $retval -eq 0 -a -f /sys/module/kvm/parameters/kvmclock_periodic_sync ]; then
+        retval = `cat /sys/module/kvm/parameters/kvmclock_periodic_sync`
+    fi
+    return $retval
 }
 
 process $@
