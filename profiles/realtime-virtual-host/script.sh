@@ -22,6 +22,11 @@ start() {
         echo "options kvm kvmclock_periodic_sync=0" > /etc/modprobe.d/kvm.rt.tuned.conf
     fi
 
+    modinfo -p kvm_intel | grep -q ple_gap
+    if [ "$?" -eq 0 ]; then
+        echo "options kvm_intel ple_gap=0" >> /etc/modprobe.d/kvm.rt.tuned.conf
+    fi
+
     if [ -f lapic_timer_adv_ns.cpumodel ]; then
         curmodel=`cat /proc/cpuinfo | grep "model name" | cut -f 2 -d ":" | uniq`
         genmodel=`cat lapic_timer_adv_ns.cpumodel`
@@ -67,6 +72,9 @@ verify() {
     retval = "$?"
     if [ $retval -eq 0 -a -f /sys/module/kvm/parameters/kvmclock_periodic_sync ]; then
         retval = `cat /sys/module/kvm/parameters/kvmclock_periodic_sync`
+    fi
+    if [ $retval -eq 0 -a -f /sys/module/kvm_intel/parameters/ple_gap ]; then
+        retval = `cat /sys/module/kvm_intel/parameters/ple_gap`
     fi
     return $retval
 }
