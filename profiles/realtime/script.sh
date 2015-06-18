@@ -21,6 +21,7 @@ stop() {
 }
 
 verify() {
+    tuna -c "$TUNED_isolated_cores" -P
     return "$?"
 }
 
